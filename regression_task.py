@@ -3,12 +3,6 @@ from typing import Tuple, Union
 import numpy as np
 import random
 
-from matplotlib import cm
-
-
-# class DataGenerator(namedtuple("DataGenerator", "dimension, args_min, args_max, args_step, generator_func")):
-#    def __new__(cls, **args):
-
 class Regression:
     def __new__(cls, *args, **kwargs):
         raise RuntimeError("Regression class is static class")
