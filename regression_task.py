@@ -273,42 +273,42 @@ class Regression:
         :param data_rows:  состоит из строк вида: [x_0,x_1,...,x_n, f(x_0,x_1,...,x_n)]
         :return:
         """
-        s_rows, s_cols = data_rows.shape
+        rows, cols = data_rows.shape
 
-        hessian = np.zeros((s_cols, s_cols,), dtype=float)
+        hessian = np.zeros((cols, cols,), dtype=float)
 
-        grad = np.zeros((s_cols,), dtype=float)
+        grad = np.zeros((cols,), dtype=float)
 
-        x_0 = np.zeros((s_cols,), dtype=float)
+        x_0 = np.zeros((cols,), dtype=float)
 
-        s_cols -= 1
+        cols -= 1
 
         # x_0[row] = 1.0: Устанавливается соответствующий элемент вектора x_0 равным 1,
         # чтобы учесть свободный член в модели линейной регрессии.
 
-        for row in range(s_cols):
+        for row in range(cols):
             x_0[row] = 1.0
             for col in range(row + 1):
                 # скалярного произведения соответствующих столбцов данных (из data_rows)
                 # для каждой комбинации столбцов (row, col) и (col, row)
                 hessian[row, col] = hessian[col, row] = np.dot(data_rows[:, row], data_rows[:, col])
 
-        for i in range(s_cols + 1):
+        for i in range(cols + 1):
             # вычисляет сумму значений в каждом столбце данных
             # и устанавливает их в соответствующие элементы матрицы Гессиана
-            hessian[i, s_cols] = hessian[s_cols, i] = (data_rows[:, i]).sum()
+            hessian[i, cols] = hessian[cols, i] = (data_rows[:, i]).sum()
 
-        hessian[s_cols, s_cols] = data_rows.shape[0]  # Заполняется последний элемент матрицы гессиана,
-        # представляющий общее количество строк данных.
+        hessian[cols, cols] = data_rows.shape[0]  # Заполняется последний элемент матрицы гессиана,
+                                                    # представляющий общее количество строк данных.
 
         # Для каждой строки row, grad[row] вычисляется как сумма всех элементов в строке row матрицы гессиана (кроме последнего столбца)
         # минус скалярное произведение последнего столбца данных (значений целевой переменной) и строки row.
-        for row in range(s_cols):
-            grad[row] = hessian[row, 0: s_cols].sum() - np.dot(data_rows[:, s_cols], data_rows[:, row])
+        for row in range(cols):
+            grad[row] = hessian[row, 0: cols].sum() - np.dot(data_rows[:, cols], data_rows[:, row])
 
         # вычисляется как сумма всех элементов в последнем столбце матрицы гессиана (кроме последнего элемента)
         # минус сумма всех значений целевой переменной.
-        grad[s_cols] = hessian[s_cols, 0: s_cols].sum() - data_rows[:, s_cols].sum()
+        grad[cols] = hessian[cols, 0: cols].sum() - data_rows[:, cols].sum()
 
         return x_0 - np.linalg.inv(hessian) @ grad
 
@@ -325,21 +325,16 @@ class Regression:
         :param order: порядок полинома
         :return: набор коэффициентов bi полинома y = Σx^i*bi
         """
-        a_m = np.zeros((order, order,), dtype=float)  # будет использоваться для хранения коэффициентов матрицы,
-                                                    # связанных с полиномиальным уравнением
-        c_m = np.zeros((order,), dtype=float) # для хранения коэффициентов вектора y.
 
-        _x_row = np.ones_like(x) # Этот массив будет использоваться для хранения степеней x в текущей строке полинома.
+        A = np.zeros((order, order), dtype=float)
+        B = np.zeros(order, dtype=float)
 
-        for row in range(order):
-            _x_row = _x_row if row == 0 else _x_row * x
-            c_m[row] = np.dot(_x_row, y)
-            _x_col = np.ones_like(x)
-            for col in range(row + 1):
-                _x_col = _x_col if col == 0 else _x_col * x
-                a_m[row][col] = a_m[col][row] = np.dot(_x_col, _x_row)
+        for j in range(order):
+            for k in range(order):
+                A[j, k] = np.sum(x ** (j + k))
+            B[j] = np.sum(y * x ** j) # учитывает, как каждая степень x^j влияет на значения y, и вклад этой степени в уравнение регрессии
 
-        return np.linalg.inv(a_m) @ c_m
+        return np.linalg.inv(A) @ B
 
     @staticmethod
     def polynom(x: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -386,10 +381,9 @@ class Regression:
         :param z:
         :return:
         """
-        n = len(x)  # Количество наблюдений
 
         # Создаем матрицу D
-        D = np.column_stack([x ** 2, x * y, y ** 2, x, y, np.ones_like(x)])
+        D = np.column_stack([x * x, x * y, y * y, x, y, np.ones_like(x)])
 
         # Рассчитываем матрицу A
         A = np.zeros((6, 6))
@@ -408,9 +402,9 @@ class Regression:
         ])
 
         # Решаем систему уравнений для получения коэффициентов
-        coefficients = np.linalg.solve(A, B)
+        # coefficients = np.linalg.solve(A, B)
 
-        return coefficients
+        return np.linalg.inv(A) @ B
 
     @staticmethod
     def distance_field_example():
