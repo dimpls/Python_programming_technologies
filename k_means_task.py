@@ -1,7 +1,8 @@
-from clustering_utils import gaussian_cluster, draw_clusters, distance
+from numpy import ndarray
+
+from clustering_utils import gaussian_cluster, draw_clusters, distance, manhattan_distance
 from typing import Union, List
 import numpy as np
-import random
 
 
 class KMeans:
@@ -23,7 +24,8 @@ class KMeans:
     Примечание: Ниже описана функциональная структура, которую использовал я. Вы можете модифицировать или вовсе
                 отойти в сторону от неё. Главное, что требуется это реализация пунктов 1-6.
     """
-    def __init__(self, n_clusters: int):
+
+    def __init__(self, n_clusters: int = None):
         """
         Метод к-средних соседей.
         """
@@ -105,7 +107,6 @@ class KMeans:
         else:
             return self._data.shape[0]
 
-
     @property
     def n_features(self) -> int:
         """
@@ -123,15 +124,7 @@ class KMeans:
         Создаёт список из np.ndarray. Каждый такой массив - это все точки определённого кластера.
         Индексы точек соответствующих кластеру хранятся в "_clusters_points_indices"
         """
-        if self._data is None:
-            return []
-        clusters = []
-        for cluster_indices in self._clusters_points_indices:
-            cluster_points = np.zeros((len(cluster_indices), self.n_features), dtype=float)
-            for index, cluster_point_index in enumerate(cluster_indices):
-                cluster_points[index, :] = self._data[cluster_point_index, :]
-            clusters.append(cluster_points)
-        return clusters
+        return [] if self._data is None else [self._data[idxs] for idxs in self._clusters_points_indices]
 
     def _clear_current_clusters(self) -> None:
         """
@@ -173,7 +166,7 @@ class KMeans:
         generator = ((cluster_index, cluster_center)
                      for cluster_index, cluster_center in enumerate(self._clusters_centers))
 
-        min_index, _ = min(generator, key=lambda curr_cluster: distance(curr_cluster[1], sample))
+        min_index, _ = min(generator, key=lambda curr_cluster: manhattan_distance(curr_cluster[1], sample))
         return min_index
 
     def _clusterize_step(self) -> List[np.ndarray]:
@@ -197,7 +190,7 @@ class KMeans:
 
         centroids = []
         for cluster_sample_indices in self._clusters_points_indices:
-            cluster_samples = [self._data[sample_index] for sample_index in cluster_sample_indices] #######
+            cluster_samples = self._data[cluster_sample_indices, :]  #######
 
             centroid = np.mean(cluster_samples, axis=0)
             centroids.append(centroid)
@@ -222,22 +215,23 @@ class KMeans:
         if data.ndim != 2:
             raise ValueError("data должен быть двумерным массивом")
 
+        self.n_clusters = self.n_clusters if target_clusters is None else target_clusters
         self._data = data
         self._create_start_clusters_centers()
 
         prev_centroids = self._clusters_centers
         while True:
             curr_centroids = self._clusterize_step()
+
             if np.allclose(prev_centroids, curr_centroids, atol=self.distance_threshold):
                 break
             prev_centroids, self._clusters_centers = self._clusters_centers, curr_centroids
 
     def show(self):
         """
-        Выводит результат кластеризации в графическом виде
+        Выводит результат кластеcризации в графическом виде
         """
         draw_clusters(self.clusters, cluster_centers=self._clusters_centers, title="K-means clustering")
-
 
 def separated_clusters():
     """
@@ -249,7 +243,7 @@ def separated_clusters():
                                gaussian_cluster(cx=1.5, n_points=512),
                                gaussian_cluster(cx=2.0, n_points=512),
                                gaussian_cluster(cx=2.5, n_points=512)))
-    k_means.fit(clusters_data)
+    k_means.fit(clusters_data, 3)
     k_means.show()
 
 
@@ -257,8 +251,8 @@ def merged_clusters():
     """
     Пример с кластеризацией пятна.
     """
-    k_means = KMeans(5)
-    k_means.fit(gaussian_cluster(n_points=512*5))
+    k_means = KMeans()
+    k_means.fit(gaussian_cluster(n_points=512 * 5), 3)
     k_means.show()
 
 

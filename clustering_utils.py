@@ -1,6 +1,7 @@
 from typing import Union, List, Tuple
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import ndarray
 
 
 def clamp(value, min_value, max_value):
@@ -85,3 +86,7 @@ def gauss_core(value: Union[np.ndarray, float], sigma: float = 0.5) -> Union[np.
 
 def flat_core(value: Union[np.ndarray, float], sigma: float = 0.5) -> np.ndarray:
     return np.exp(-value * 0.5 / (sigma * sigma))
+
+
+def manhattan_distance(left: np.ndarray, right: np.ndarray) -> ndarray:
+    return max(np.abs(right - left))

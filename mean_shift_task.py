@@ -1,5 +1,7 @@
-from clustering_utils import gaussian_cluster, draw_clusters, distance, gauss_core
-from typing import Union, List, Tuple
+from numpy import ndarray
+
+from clustering_utils import gaussian_cluster, draw_clusters, distance, gauss_core, manhattan_distance
+from typing import Union, List, Tuple, Any
 import numpy as np
 
 
@@ -121,15 +123,7 @@ class MShift:
         Создаёт список из np.ndarray. Каждый такой массив - это все точки определённого кластера.
         Индексы точек соответствующих кластеру хранятся в "_clusters_points_indices"
         """
-        if self._data is None:
-            return []
-        clusters = []
-        for cluster_indices in self._clusters_points_indices:
-            cluster_points = np.zeros((len(cluster_indices), self.n_features), dtype=float)
-            for index, cluster_point_index in enumerate(cluster_indices):
-                cluster_points[index, :] = self._data[cluster_point_index, :]
-            clusters.append(cluster_points)
-        return clusters
+        return [] if self._data is None else [self._data[idxs] for idxs in self._clusters_points_indices]
 
     def _clear_current_clusters(self) -> None:
         """
@@ -205,7 +199,7 @@ class MShift:
                 stationary_points.add(idx)
                 self._update_clusters_centers(idx, new_position)
 
-    def _get_closest_cluster_center(self, sample: np.ndarray) -> int:
+    def _get_closest_cluster_center(self, sample: np.ndarray) -> tuple[int, ndarray]:
         """
         Определяет ближайший центр кластера для точки из переданного набора данных.
         Hint: для ускорения кода используйте min с генератором.
@@ -213,8 +207,8 @@ class MShift:
         generator = ((cluster_index, cluster_center)
                      for cluster_index, cluster_center in enumerate(self._clusters_centers))
 
-        min_index, min_center = min(generator, key=lambda curr_cluster: distance(curr_cluster[1], sample))
-        return min_index, distance(sample, min_center)
+        min_index, min_center = min(generator, key=lambda curr_cluster: manhattan_distance(curr_cluster[1], sample))
+        return min_index, manhattan_distance(sample, min_center)
 
     def fit(self, data: np.ndarray) -> None:
         """
